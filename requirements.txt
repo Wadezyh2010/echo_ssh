@@ -1,0 +1,6 @@
+PyQt6>=6.6.0
+paramiko>=3.4.0
+pyte>=0.8.1
+pyqtgraph>=0.13.0
+numpy>=1.26.0
+PyInstaller>=6.0.0
