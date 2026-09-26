@@ -19,9 +19,9 @@ TRANSLATIONS = {
         "window_title": "echo_ssh - 现代 SSH 客户端",
         "about_title": "关于 echo_ssh",
         "about_text": (
-            "echo_ssh v1.0\n\n"
-            "一款现代 SSH 客户端，集成终端仿真与\n"
-            "实时性能监控。\n\n"
+            "echo_ssh v1.1\n\n"
+            "一款现代 SSH 客户端，集成终端仿真、\n"
+            "实时性能监控、快捷命令与应用市场。\n\n"
             "基于 PyQt6、paramiko、pyte、pyqtgraph 构建。"
         ),
 
@@ -56,9 +56,11 @@ TRANSLATIONS = {
             "功能特性：\n"
             "  •  完整的终端仿真，支持 256 色\n"
             "  •  实时 CPU、内存、网络与磁盘性能图表\n"
+            "  •  自动识别远程系统，提供快捷命令（更新/重启等）\n"
+            "  •  应用市场：一键安装常用软件，新手友好\n"
             "  •  复制 / 粘贴（Ctrl+Shift+C / Ctrl+Shift+V 或右键菜单）\n"
             "  •  密码与 SSH 密钥认证\n"
-            "  •  多会话标签页"
+            "  •  多会话标签页 · 中/英双语"
         ),
         "welcome_hint": "请在上方填写连接信息，然后点击「连接」开始使用。",
         "welcome_tab": "欢迎",
@@ -99,6 +101,44 @@ TRANSLATIONS = {
 
         # Language switch notification
         "lang_changed": "语言已切换，新会话与欢迎页将使用新语言。",
+
+        # Quick commands
+        "qc_detecting": "识别系统中...",
+        "qc_sysinfo": "系统信息",
+        "qc_update": "更新软件包",
+        "qc_disk": "磁盘使用",
+        "qc_mem": "内存信息",
+        "qc_top": "进程排行",
+        "qc_reboot": "重启",
+        "qc_shutdown": "关机",
+        "qc_mirror": "换源",
+
+        # Mirror switcher
+        "mirror_title": "镜像源切换",
+        "mirror_tip": "自动 ping 测试各镜像源延迟（越低越好）。点击后将自动注释官方源并写入所选镜像源。",
+        "mirror_ping_progress": "正在测试 ping 延迟... %p%",
+        "mirror_no_ping": "— (未连通)",
+        "mirror_reping": "重新 ping",
+        "mirror_switch": "切换到此源",
+        "mirror_select_one": "请先选择一个镜像源",
+        "mirror_not_supported": "该发行版暂不支持自动换源，请手动操作。",
+        "mirror_not_connected": "请先连接远程主机再切换镜像源。",
+        "mirror_confirm": "确认切换到「{mirror}」？\n\n将执行以下操作：\n  1. 备份当前 sources.list\n  2. 注释掉所有官方源\n  3. 写入所选镜像源地址\n  4. 运行 apt-get update\n\n继续？",
+
+        # App market
+        "market_detecting": "正在识别远程系统...",
+        "market_install": "一键安装",
+        "market_no_packages": "当前分类暂无适配此系统的软件包",
+        "cat_all": "全部分类",
+        "cat_dev": "开发工具",
+        "cat_web": "网页服务",
+        "cat_database": "数据库",
+        "cat_system": "系统工具",
+        "cat_network": "网络工具",
+        "cat_security": "安全防护",
+        "cat_media": "多媒体",
+        "tab_performance": "性能监控",
+        "tab_appmarket": "应用市场",
     },
 
     "en": {
@@ -106,9 +146,10 @@ TRANSLATIONS = {
         "window_title": "echo_ssh - Modern SSH Client",
         "about_title": "About echo_ssh",
         "about_text": (
-            "echo_ssh v1.0\n\n"
-            "A modern SSH client with terminal emulation\n"
-            "and real-time performance monitoring.\n\n"
+            "echo_ssh v1.1\n\n"
+            "A modern SSH client with terminal emulation,\n"
+            "real-time performance monitoring, quick commands\n"
+            "and an app market.\n\n"
             "Built with PyQt6, paramiko, pyte, pyqtgraph."
         ),
 
@@ -140,9 +181,11 @@ TRANSLATIONS = {
             "Features:\n"
             "  •  Full terminal emulation with 256-color support\n"
             "  •  Real-time CPU, Memory, Network & Disk performance charts\n"
+            "  •  Auto-detect remote OS with context-aware quick commands\n"
+            "  •  App Market: one-click install of popular software\n"
             "  •  Copy / Paste (Ctrl+Shift+C / Ctrl+Shift+V or right-click)\n"
             "  •  Password & SSH key authentication\n"
-            "  •  Multiple session tabs"
+            "  •  Multiple session tabs · 中文/English bilingual"
         ),
         "welcome_hint": "Fill in the connection details above and click Connect to begin.",
         "welcome_tab": "Welcome",
@@ -178,6 +221,44 @@ TRANSLATIONS = {
         "metric_net_out": "Net Out",
 
         "lang_changed": "Language switched. New sessions and the welcome page will use the new language.",
+
+        # Quick commands
+        "qc_detecting": "Detecting system...",
+        "qc_sysinfo": "System Info",
+        "qc_update": "Update Packages",
+        "qc_disk": "Disk Usage",
+        "qc_mem": "Memory Info",
+        "qc_top": "Top Processes",
+        "qc_reboot": "Reboot",
+        "qc_shutdown": "Shutdown",
+        "qc_mirror": "Switch Mirror",
+
+        # Mirror switcher
+        "mirror_title": "Mirror Source Switcher",
+        "mirror_tip": "Automatically pings each mirror to test latency (lower is better). Clicking Switch will comment out the official sources and append the selected mirror.",
+        "mirror_ping_progress": "Pinging mirrors... %p%",
+        "mirror_no_ping": "— (unreachable)",
+        "mirror_reping": "Re-ping",
+        "mirror_switch": "Switch to this",
+        "mirror_select_one": "Please select a mirror first.",
+        "mirror_not_supported": "Automatic source switching is not supported for this distro yet.",
+        "mirror_not_connected": "Please connect to a remote host before switching mirrors.",
+        "mirror_confirm": "Switch to '{mirror}'?\n\nThis will:\n  1. Back up your current sources.list\n  2. Comment out all existing entries\n  3. Append the selected mirror\n  4. Run apt-get update\n\nContinue?",
+
+        # App market
+        "market_detecting": "Detecting remote system...",
+        "market_install": "Install",
+        "market_no_packages": "No packages for this system in the selected category",
+        "cat_all": "All",
+        "cat_dev": "Development",
+        "cat_web": "Web Servers",
+        "cat_database": "Databases",
+        "cat_system": "System Tools",
+        "cat_network": "Network",
+        "cat_security": "Security",
+        "cat_media": "Media",
+        "tab_performance": "Performance",
+        "tab_appmarket": "App Market",
     },
 }
 

@@ -7,7 +7,7 @@ monitoring. Built with PyQt6, paramiko, pyte, and pyqtgraph.
 import sys
 import os
 
-from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtCore import Qt, QTimer, pyqtSlot
 from PyQt6.QtGui import QAction, QFont, QIcon
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, QLineEdit, QSpinBox,
@@ -20,29 +20,55 @@ from styles import apply_theme
 from terminal_widget import TerminalWidget
 from ssh_session import SSHSession
 from performance_monitor import PerformanceMonitor
+from quick_commands import QuickCommands
+from app_market import AppMarket
+from system_info import SystemInfo, detect_system
+from mirror_switcher import MirrorDialog
 from i18n import tr, set_language, get_language, LANGUAGES, APP_NAME
 
 
 class SessionTab(QWidget):
-    """A single session tab containing terminal + performance monitor."""
+    """A single session tab containing terminal + quick commands + performance + app market."""
 
     def __init__(self, host, port, username, password=None, key_path=None, passphrase=None, parent=None):
         super().__init__(parent)
         self.host = host
         self.username = username
         self.session = SSHSession()
+        self.system_info = SystemInfo()
         self.terminal = TerminalWidget()
+
+        # Quick commands toolbar
+        self.quick_cmds = QuickCommands(self.system_info)
+        self.quick_cmds.command_requested.connect(self._run_command)
+        self.quick_cmds.open_mirror_requested.connect(self._open_mirror_dialog)
+
+        # Right panel: tabbed Performance + App Market
+        self.right_tabs = QTabWidget()
+        self.right_tabs.setObjectName("RightPanel")
+        self.right_tabs.setDocumentMode(True)
         self.perf_monitor = PerformanceMonitor(self.session)
-        self.perf_monitor.setMaximumWidth(420)
+        self.app_market = AppMarket(self.system_info)
+        self.app_market.install_requested.connect(self._run_command)
+        self.right_tabs.addTab(self.perf_monitor, tr("tab_performance"))
+        self.right_tabs.addTab(self.app_market, tr("tab_appmarket"))
+        self.right_tabs.setMaximumWidth(420)
+
+        # Layout: quick commands on top, then terminal | right panel
+        top_layout = QVBoxLayout()
+        top_layout.setContentsMargins(0, 0, 0, 0)
+        top_layout.setSpacing(0)
+        top_layout.addWidget(self.quick_cmds)
 
         splitter = QSplitter(Qt.Orientation.Horizontal)
         splitter.addWidget(self.terminal)
-        splitter.addWidget(self.perf_monitor)
+        splitter.addWidget(self.right_tabs)
         splitter.setStretchFactor(0, 3)
         splitter.setStretchFactor(1, 1)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
+        layout.addLayout(top_layout)
         layout.addWidget(splitter)
 
         # Wire up signals
@@ -52,6 +78,18 @@ class SessionTab(QWidget):
         self.session.disconnected.connect(self._on_disconnected)
         self.session.connection_failed.connect(self._on_failed)
         self.session.status_changed.connect(self._on_status)
+
+        # Command history
+        self._cmd_history = []
+        self._history_limit = 200
+        self._history_index = -1
+        self._pending_input = b""
+
+        # Client-side command history navigation (Shift+Up/Down)
+        self.terminal.history_navigate.connect(self._on_history_navigate)
+
+        # Track commands typed manually in terminal
+        self.terminal.data_sent.connect(self._track_input)
 
         # Resize PTY when terminal resizes
         self.terminal.installEventFilter(self)
@@ -73,6 +111,21 @@ class SessionTab(QWidget):
     def _on_connected(self):
         self._apply_pty_resize()
         self.perf_monitor.start()
+        # Auto-detect remote system in a background thread
+        import threading
+        threading.Thread(target=self._detect_system, daemon=True).start()
+
+    def _detect_system(self):
+        info = detect_system(self.session)
+        self.system_info = info
+        # Update UI on the main thread
+        from PyQt6.QtCore import QMetaObject, Qt as _Qt
+        QMetaObject.invokeMethod(self, "_apply_system_info", _Qt.ConnectionType.QueuedConnection)
+
+    @pyqtSlot()
+    def _apply_system_info(self):
+        self.quick_cmds.set_system_info(self.system_info)
+        self.app_market.set_system_info(self.system_info)
 
     def _on_disconnected(self):
         self.perf_monitor.stop()
@@ -91,6 +144,89 @@ class SessionTab(QWidget):
 
     def retranslate_ui(self):
         self.perf_monitor.retranslate_ui()
+        self.quick_cmds.retranslate_ui()
+        self.app_market.retranslate_ui()
+        self.right_tabs.setTabText(0, tr("tab_performance"))
+        self.right_tabs.setTabText(1, tr("tab_appmarket"))
+
+    def _run_command(self, cmd: str):
+        """Send a command to the remote shell. Encode str→bytes properly."""
+        if not self.session.is_connected():
+            return
+        # Strip trailing CR/LF and re-add a single \r
+        clean = cmd.rstrip("\r\n")
+        if not clean:
+            return
+        self._add_history(clean)
+        # Send as bytes; the shell will echo it back
+        self.terminal.data_sent.emit((clean + "\r").encode("utf-8"))
+
+    def get_cmd_history(self):
+        """Return the command history list (newest first via reversed)."""
+        return self._cmd_history
+
+    def _add_history(self, cmd: str):
+        """Add a command to history (deduplicated on adjacent)."""
+        cmd = cmd.strip()
+        if not cmd:
+            return
+        if self._cmd_history and self._cmd_history[-1] == cmd:
+            return
+        self._cmd_history.append(cmd)
+        if len(self._cmd_history) > self._history_limit:
+            self._cmd_history.pop(0)
+        self._history_index = len(self._cmd_history)  # reset pointer
+
+    def _track_input(self, data: bytes):
+        """Track user typing to record commands when Enter is pressed."""
+        if not data:
+            return
+        # Skip control characters that aren't text building
+        # (backspace, arrows, Ctrl+C, etc.)
+        stripped = b""
+        for b in data:
+            if b == 0x0d or b == 0x0a:  # CR / LF
+                # Flush what we've accumulated
+                try:
+                    cmd = self._pending_input.decode("utf-8", errors="replace")
+                except Exception:
+                    cmd = ""
+                if cmd.strip() and not cmd.startswith("\x1b"):
+                    self._add_history(cmd)
+                self._pending_input = b""
+            elif b == 0x7f or b == 0x08:  # Backspace
+                self._pending_input = self._pending_input[:-1]
+            elif 0x20 <= b <= 0x7e or b >= 0x80:  # Printable ASCII + high bytes
+                self._pending_input += bytes([b])
+            # else: control chars like arrows, Ctrl+C, etc. — skip
+
+    def _on_history_navigate(self, direction: int):
+        """Navigate client-side command history via Shift+Up/Down.
+        Sends the selected command text to the shell (no auto-execute)."""
+        if not self._cmd_history:
+            return
+        # direction: -1 = older (Shift+Up), +1 = newer (Shift+Down)
+        if direction < 0:
+            self._history_index = max(0, self._history_index - 1)
+        else:
+            self._history_index = min(len(self._cmd_history), self._history_index + 1)
+
+        if self._history_index >= len(self._cmd_history):
+            # Past newest = clear line
+            return
+        cmd = self._cmd_history[self._history_index]
+        # Send the command text only (no \r) so it shows on prompt but user edits
+        self.terminal.data_sent.emit(cmd.encode("utf-8"))
+
+    def _open_mirror_dialog(self):
+        """Open the mirror switcher dialog."""
+        if not self.session.is_connected():
+            from PyQt6.QtWidgets import QMessageBox
+            QMessageBox.warning(self, tr("mirror_title"), tr("mirror_not_connected"))
+            return
+        dlg = MirrorDialog(self.session, self.system_info, self)
+        dlg.switch_requested.connect(self._run_command)
+        dlg.exec()
 
     def close(self):
         self.perf_monitor.stop()
@@ -135,6 +271,7 @@ class MainWindow(QMainWindow):
         self.port_input.setRange(1, 65535)
         self.port_input.setValue(22)
         self.port_input.setFixedWidth(70)
+        self.port_input.setButtonSymbols(QSpinBox.ButtonSymbols.NoButtons)
         self.port_label = QLabel()
         bar_layout.addWidget(self.port_label)
         bar_layout.addWidget(self.port_input)

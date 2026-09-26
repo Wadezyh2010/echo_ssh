@@ -232,6 +232,65 @@ QSplitter::handle:horizontal {
 QSplitter::handle:vertical {
     height: 2px;
 }
+
+/* Quick commands toolbar */
+#QuickCommandsBar {
+    background-color: #181825;
+    border-bottom: 1px solid #313244;
+}
+
+/* App market cards */
+QFrame#AppCard {
+    background-color: #181825;
+    border: 1px solid #313244;
+    border-radius: 10px;
+}
+
+QFrame#AppCard:hover {
+    border: 1px solid #89b4fa;
+}
+
+/* Category combo in app market */
+QComboBox {
+    background-color: #313244;
+    border: 1px solid #45475a;
+    border-radius: 6px;
+    padding: 5px 10px;
+    color: #cdd6f4;
+}
+
+QComboBox:hover {
+    border: 1px solid #89b4fa;
+}
+
+QComboBox QAbstractItemView {
+    background-color: #1e1e2e;
+    border: 1px solid #45475a;
+    selection-background-color: #45475a;
+    color: #cdd6f4;
+}
+
+/* Right panel tabs (performance / app market) */
+QTabWidget#RightPanel::pane {
+    border: none;
+}
+
+QTabWidget#RightPanel QTabBar::tab {
+    background-color: #181825;
+    color: #a6adc8;
+    padding: 6px 14px;
+    border: 1px solid #313244;
+    border-bottom: none;
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+    margin-right: 2px;
+}
+
+QTabWidget#RightPanel QTabBar::tab:selected {
+    background-color: #1e1e2e;
+    color: #89b4fa;
+    border-bottom: 2px solid #89b4fa;
+}
 """
 
 

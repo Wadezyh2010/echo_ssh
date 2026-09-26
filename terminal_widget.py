@@ -54,6 +54,7 @@ class TerminalWidget(QWidget):
     """A terminal emulator widget."""
 
     data_sent = pyqtSignal(bytes)
+    history_navigate = pyqtSignal(int)  # +1 = newer, -1 = older
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -258,6 +259,14 @@ class TerminalWidget(QWidget):
                 return
 
         # Special keys
+        # Shift+Up/Down for client-side command history navigation
+        if modifiers & Qt.KeyboardModifier.ShiftModifier and key == Qt.Key.Key_Up:
+            self.history_navigate.emit(-1)
+            return
+        if modifiers & Qt.KeyboardModifier.ShiftModifier and key == Qt.Key.Key_Down:
+            self.history_navigate.emit(1)
+            return
+
         mapping = {
             Qt.Key.Key_Return: b"\r",
             Qt.Key.Key_Enter: b"\r",
